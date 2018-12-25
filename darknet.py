@@ -21,7 +21,7 @@ def get_test_input():
     return img_
 
 
-def parse_cfg(cfgfile):
+def parse_cfg(cfg_file):
     """
     Takes a configuration file
 
@@ -30,7 +30,7 @@ def parse_cfg(cfgfile):
 
     """
 
-    file = open(cfgfile, 'r')
+    file = open(cfg_file, 'r')
     lines = file.read().split('\n')  # store the lines in a list
     lines = [x for x in lines if len(x) > 0]  # get read of the empty lines
     lines = [x for x in lines if x[0] != '#']  # get rid of comments
@@ -164,12 +164,12 @@ def create_modules(blocks):
 
 
 class Darknet(nn.Module):
-    def __init__(self, cfgfile):
+    def __init__(self, cfg_file):
         super(Darknet, self).__init__()
-        self.blocks = parse_cfg(cfgfile)
+        self.blocks = parse_cfg(cfg_file)
         self.net_info, self.module_list = create_modules(self.blocks)
 
-    def forward(self, x, CUDA):
+    def forward(self, x, cuda):
         modules = self.blocks[1:]
         outputs = {}  # Cache the outputs for the route layer
 
@@ -212,7 +212,7 @@ class Darknet(nn.Module):
 
                 # Transform
                 x = x.data
-                x = predict_transform(x, inp_dim, anchors, num_classes, CUDA)
+                x = predict_transform(x, inp_dim, anchors, num_classes, cuda)
                 if not write:  # No collector has been initialized
                     detections = x
                     write = 1
