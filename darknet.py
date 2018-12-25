@@ -74,7 +74,7 @@ def create_modules(blocks):
         module = nn.Sequential()
 
         # If it's a convolutional layer
-        if (x["type"] == "convolutional"):
+        if x["type"] == "convolutional":
             # Get the info about the layer
             activation = x["activation"]
             try:
@@ -110,12 +110,12 @@ def create_modules(blocks):
                 module.add_module("leaky_{0}".format(index), activn)
 
         # We use bilinear 2D upsampling
-        elif (x["type"] == "upsample"):
+        elif x["type"] == "upsample":
             stride = int(x["stride"])
             upsample = nn.Upsample(scale_factor=2, mode="nearest")
             module.add_module("upsample_{}".format(index), upsample)
 
-        elif (x["type"] == "route"):
+        elif x["type"] == "route":
             x["layers"] = x["layers"].split(',')
 
             # Start of a route
@@ -160,7 +160,7 @@ def create_modules(blocks):
         prev_filters = filters
         output_filters.append(filters)
 
-    return (net_info, module_list)
+    return net_info, module_list
 
 
 class Darknet(nn.Module):
