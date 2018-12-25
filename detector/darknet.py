@@ -1,16 +1,16 @@
 from __future__ import division
-from util import *
-# import configparser
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
 import numpy as np
+# import configparser
+from util import *
 
 
 def get_test_input():
-    img = cv2.imread('data/dog-cycle-car.png')
+    img = cv2.imread("data/dog-cycle-car.png")
     img = cv2.resize(img, (416, 416))  # Resize to the input dimension
     img_ = img[:, :, ::-1].transpose((2, 0, 1))  # BGR -> RGB | H X W C -> C X H X W
     img_ = img_[np.newaxis, :, :, :] / 255.0  # Add a channel at 0 (for batch) | Normalise
@@ -21,11 +21,11 @@ def get_test_input():
 
 def parse_cfg(cfgfile):
     """
-    Parses a configuration file.
+    Takes a configuration file
 
-    :param cfgfile: a configuration file
-    :return: a list of blocks. Each block describes a block in the neural network to be built. Block is represented as a
-    dictionary in the list.
+    Returns a list of blocks. Each blocks describes a block in the neural
+    network to be built. Block is represented as a dictionary in the list
+
     """
 
     file = open(cfgfile, 'r')
@@ -46,21 +46,33 @@ def parse_cfg(cfgfile):
         else:
             key, value = line.split("=")
             block[key.rstrip()] = value.lstrip()
-
     blocks.append(block)
+
     return blocks
+
+
+class EmptyLayer(nn.Module):
+    def __init__(self):
+        super(EmptyLayer, self).__init__()
+
+
+class DetectionLayer(nn.Module):
+    def __init__(self, anchors):
+        super(DetectionLayer, self).__init__()
+        self.anchors = anchors
 
 
 def create_modules(blocks):
     net_info = blocks[0]  # Captures the information about the input and pre-processing
     module_list = nn.ModuleList()
-    prev_filters = 3  # Initially corresponds to RGB channels
+    prev_filters = 3
     output_filters = []
 
     for index, x in enumerate(blocks[1:]):
         module = nn.Sequential()
 
-        if x["type"] == "convolutional":
+        # If it's a convolutional layer
+        if (x["type"] == "convolutional"):
             # Get the info about the layer
             activation = x["activation"]
             try:
@@ -95,23 +107,23 @@ def create_modules(blocks):
                 activn = nn.LeakyReLU(0.1, inplace=True)
                 module.add_module("leaky_{0}".format(index), activn)
 
-        # If it's an upsampling layer
-        # We use Bilinear2dUpsampling
-        elif x["type"] == "upsample":
+        # We use bilinear 2D upsampling
+        elif (x["type"] == "upsample"):
             stride = int(x["stride"])
-            upsample = nn.Upsample(scale_factor=2, mode="bilinear")
+            upsample = nn.Upsample(scale_factor=2, mode="nearest")
             module.add_module("upsample_{}".format(index), upsample)
 
-        # If it is a route layer
-        elif x["type"] == "route":
+        elif (x["type"] == "route"):
             x["layers"] = x["layers"].split(',')
-            # Start  of a route
+
+            # Start of a route
             start = int(x["layers"][0])
-            # end, if there exists one.
+            # End, if there exists one
             try:
                 end = int(x["layers"][1])
             except:
                 end = 0
+
             # Positive annotation
             if start > 0:
                 start = start - index
@@ -124,12 +136,12 @@ def create_modules(blocks):
             else:
                 filters = output_filters[index + start]
 
-        # shortcut corresponds to skip connection
+        # Shortcut corresponds to skip connection
         elif x["type"] == "shortcut":
             shortcut = EmptyLayer()
             module.add_module("shortcut_{}".format(index), shortcut)
 
-        # Yolo is the detection layer
+        # YOLO is the detection layer
         elif x["type"] == "yolo":
             mask = x["mask"].split(",")
             mask = [int(x) for x in mask]
@@ -146,18 +158,7 @@ def create_modules(blocks):
         prev_filters = filters
         output_filters.append(filters)
 
-    return net_info, module_list
-
-
-class EmptyLayer(nn.Module):
-    def __init__(self):
-        super(EmptyLayer, self).__init__()
-
-
-class DetectionLayer(nn.Module):
-    def __init__(self, anchors):
-        super(DetectionLayer, self).__init__()
-        self.anchors = anchors
+    return (net_info, module_list)
 
 
 class Darknet(nn.Module):
@@ -169,9 +170,11 @@ class Darknet(nn.Module):
     def forward(self, x, CUDA):
         modules = self.blocks[1:]
         outputs = {}  # Cache the outputs for the route layer
+
         write = 0
         for i, module in enumerate(modules):
             module_type = (module["type"])
+
             if module_type == "convolutional" or module_type == "upsample":
                 x = self.module_list[i](x)
 
@@ -191,7 +194,6 @@ class Darknet(nn.Module):
 
                     map1 = outputs[i + layers[0]]
                     map2 = outputs[i + layers[1]]
-
                     x = torch.cat((map1, map2), 1)
 
             elif module_type == "shortcut":
