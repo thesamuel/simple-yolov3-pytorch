@@ -223,9 +223,9 @@ class Darknet(nn.Module):
 
         return detections
 
-    def load_weights(self, weightfile):
+    def load_weights(self, weight_file):
         # Open the weights file
-        fp = open(weightfile, "rb")
+        fp = open(weight_file, "rb")
 
         # The first 5 values are header information
         # 1. Major version number
@@ -243,7 +243,7 @@ class Darknet(nn.Module):
             module_type = self.blocks[i + 1]["type"]
 
             # If module_type is convolutional load weights
-            # Otherwise ignore.
+            # Otherwise, ignore.
             if module_type == "convolutional":
                 model = self.module_list[i]
                 try:
@@ -294,8 +294,8 @@ class Darknet(nn.Module):
                     # reshape the loaded weights according to the dims of the model weights
                     conv_biases = conv_biases.view_as(conv.bias.data)
 
-                # Finally copy the data
-                conv.bias.data.copy_(conv_biases)
+                    # Finally copy the data
+                    conv.bias.data.copy_(conv_biases)
 
                 # Let us load the weights for the Convolutional layers
                 num_weights = conv.weight.numel()
