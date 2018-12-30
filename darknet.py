@@ -309,6 +309,7 @@ class Darknet(nn.Module):
 
 
 model = Darknet('cfg/yolov3.cfg')
+print(model)
 model.load_weights("yolov3.weights")
 inp = get_test_input()
 pred = model(inp, torch.cuda.is_available())
